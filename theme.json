@@ -1,0 +1,14 @@
+{
+  "name": "Pahri Thema New 6.0 Nexus Dock",
+  "version": "6.7.3",
+  "target_pterodactyl": "v1.14.x",
+  "author": "Fakrul (fahrihostingg)",
+  "features": [
+    "Nexus Floating Dock Navigation",
+    "Modern Glassmorphism Dark Mode",
+    "Integrated Store & Billing Quick Links",
+    "Admin Owner Controls & Real-time Server Stats",
+    "Pterodactyl v1.14.1 Compatible",
+    "Zero-Downtime Safe Python Patcher v2"
+  ]
+}
