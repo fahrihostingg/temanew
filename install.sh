@@ -24,7 +24,6 @@ C_WHITE="${ESC}38;5;255m"
 
 PANEL_DIR="/var/www/pterodactyl"
 BACKUP_DIR="${PANEL_DIR}/theme_backups"
-REPO_URL="https://github.com/fahrihostingg/pahri-pterodactyl-theme.git"
 
 print_header() {
     clear
@@ -96,21 +95,31 @@ backup_panel() {
     log_ok "Sandaran berjaya disimpan: $(basename "$bfile")"
 }
 
-# 5. Jalankan Patcher Python
+# 5. Jalankan Patcher Python (Menyokong kedua-dua bendera --panel dan argumen biasa)
 run_patcher() {
     log_step "Menjalankan patcher tema (patcher-v2.py)..."
     local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    
+    local patcher_bin=""
+
     if [[ -f "$SCRIPT_DIR/patcher-v2.py" ]]; then
-        python3 "$SCRIPT_DIR/patcher-v2.py" "$PANEL_DIR"
+        patcher_bin="$SCRIPT_DIR/patcher-v2.py"
     elif [[ -f "$PANEL_DIR/patcher-v2.py" ]]; then
-        python3 "$PANEL_DIR/patcher-v2.py" "$PANEL_DIR"
+        patcher_bin="$PANEL_DIR/patcher-v2.py"
+    elif [[ -f "/tmp/patcher-v2.py" ]]; then
+        patcher_bin="/tmp/patcher-v2.py"
     else
         log_warn "patcher-v2.py tidak dijumpai secara lokal. Memuat turun dari arkib tema..."
         curl -sSL "https://raw.githubusercontent.com/fahrihostingg/pahri-pterodactyl-theme/main/patcher-v2.py" -o "/tmp/patcher-v2.py"
-        python3 "/tmp/patcher-v2.py" "$PANEL_DIR"
-        rm -f "/tmp/patcher-v2.py"
+        patcher_bin="/tmp/patcher-v2.py"
     fi
+
+    # Jalankan dengan parameter --panel seperti yang diperlukan oleh patcher-v2.py
+    if python3 "$patcher_bin" --help 2>&1 | grep -q -- "--panel"; then
+        python3 "$patcher_bin" --panel "$PANEL_DIR"
+    else
+        python3 "$patcher_bin" "$PANEL_DIR"
+    fi
+
     log_ok "Patcher tema berjaya disempurnakan."
 }
 
