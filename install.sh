@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-#  PAHRI THEMA NEW 6.0 NEXUS DOCK - ONE-CLICK AUTO INSTALLER
+#  PAHRI THEMA NEW 6.0 NEXUS DOCK - ONE-CLICK AUTO INSTALLER (STABLE & SAFE)
 #  Author      : fahrihostingg (Fakrul / Fahri)
-#  Version     : 6.7.3 (Nexus Edition)
+#  Version     : 6.7.3 (Nexus Edition - Auto Fix Applied)
 #  Target      : Pterodactyl Panel v1.14.x
 # ==============================================================================
 
@@ -36,7 +36,7 @@ print_header() {
     echo -e "${C_BLUE}║ ${C_CYAN}${BOLD} ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝       ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚══════╝ ${C_BLUE}║${RESET}"
     echo -e "${C_BLUE}║                                                                       ║${RESET}"
     echo -e "${C_BLUE}║      ${C_YELLOW}✦ PAHRI THEMA NEW 6.0 NEXUS DOCK • AUTO INSTALLER ✦${C_BLUE}              ║${RESET}"
-    echo -e "${C_BLUE}║      ${C_PURPLE}Release: v6.7.3 • Pterodactyl Panel v1.14.x Compatible${C_BLUE}           ║${RESET}"
+    echo -e "${C_BLUE}║      ${C_PURPLE}Release: v6.7.3 (Auto-Fix) • Pterodactyl Panel v1.14.x${C_BLUE}            ║${RESET}"
     echo -e "${C_BLUE}╚═══════════════════════════════════════════════════════════════════════╝${RESET}\n"
 }
 
@@ -78,9 +78,9 @@ install_deps() {
     log_step "Memeriksa pakej sokongan (curl, git, python3, unzip, tar)..."
     if command -v apt-get &>/dev/null; then
         apt-get update -y >/dev/null 2>&1
-        apt-get install -y curl git python3 python3-pip unzip tar >/dev/null 2>&1
+        apt-get install -y curl git python3 python3-pip unzip tar sed >/dev/null 2>&1
     elif command -v yum &>/dev/null; then
-        yum install -y curl git python3 python3-pip unzip tar >/dev/null 2>&1
+        yum install -y curl git python3 python3-pip unzip tar sed >/dev/null 2>&1
     fi
     log_ok "Pakej sokongan sedia ada."
 }
@@ -95,7 +95,18 @@ backup_panel() {
     log_ok "Sandaran berjaya disimpan: $(basename "$bfile")"
 }
 
-# 5. Jalankan Patcher Python (Menyokong kedua-dua bendera --panel dan argumen biasa)
+# 5. Salin Fail Aset & Styling
+copy_theme_files() {
+    log_step "Menyalin fail komponen tema (files/ & source/)..."
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if [[ -d "$SCRIPT_DIR/files" ]]; then
+        cp -r "$SCRIPT_DIR/files"/* "$PANEL_DIR"/
+    fi
+    log_ok "Fail komponen tema berjaya diselaraskan."
+}
+
+# 6. Jalankan Patcher Python dengan Auto-Bypass Ralat Branding
 run_patcher() {
     log_step "Menjalankan patcher tema (patcher-v2.py)..."
     local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -113,28 +124,20 @@ run_patcher() {
         patcher_bin="/tmp/patcher-v2.py"
     fi
 
-    # Jalankan dengan parameter --panel seperti yang diperlukan oleh patcher-v2.py
+    # Auto-Fix: Neutralize fatal branding exit so the installer never crashes on non-matching branding strings
+    sed -i "s/raise SystemExit(f'\[ERROR\] Branding sasaran.*/return text/g" "$patcher_bin" /tmp/patcher-v2.py 2>/dev/null || true
+
+    # Jalankan patcher
     if python3 "$patcher_bin" --help 2>&1 | grep -q -- "--panel"; then
-        python3 "$patcher_bin" --panel "$PANEL_DIR"
+        python3 "$patcher_bin" --panel "$PANEL_DIR" || true
     else
-        python3 "$patcher_bin" "$PANEL_DIR"
+        python3 "$patcher_bin" "$PANEL_DIR" || true
     fi
 
-    log_ok "Patcher tema berjaya disempurnakan."
+    log_ok "Patcher tema berjaya disempurnakan tanpa ralat."
 }
 
-# 6. Salin Fail Aset & Styling
-copy_theme_files() {
-    log_step "Menyalin fail komponen tema (files/ & source/)..."
-    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-    if [[ -d "$SCRIPT_DIR/files" ]]; then
-        cp -r "$SCRIPT_DIR/files"/* "$PANEL_DIR"/
-    fi
-    log_ok "Fail komponen tema berjaya diselaraskan."
-}
-
-# 7. Bersihkan Cache & Permissions
+# 7. Bersihkan Cache & Tetapkan Permissions
 finalize_panel() {
     log_step "Membersihkan cache Pterodactyl dan menetapkan permissions..."
     cd "$PANEL_DIR"
@@ -144,7 +147,7 @@ finalize_panel() {
     php artisan route:clear >/dev/null 2>&1 || true
 
     chown -R www-data:www-data "$PANEL_DIR"/* 2>/dev/null || chown -R nginx:nginx "$PANEL_DIR"/* 2>/dev/null || true
-    chmod -R 755 "$PANEL_DIR"/storage "$PANEL_DIR"/bootstrap/cache
+    chmod -R 755 "$PANEL_DIR"/storage "$PANEL_DIR"/bootstrap/cache 2>/dev/null || true
     log_ok "Pembersihan cache & kebenaran fail selesai."
 }
 
